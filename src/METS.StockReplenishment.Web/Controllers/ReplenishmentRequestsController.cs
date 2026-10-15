@@ -1,0 +1,247 @@
+using METS.StockReplenishment.Core.DTOs;
+using METS.StockReplenishment.Core.Enums;
+using METS.StockReplenishment.Core.Exceptions;
+using METS.StockReplenishment.Core.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+
+namespace METS.StockReplenishment.Web.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ReplenishmentRequestsController : ControllerBase
+{
+    private readonly IReplenishmentRequestService _service;
+
+    public ReplenishmentRequestsController(IReplenishmentRequestService service)
+    {
+        _service = service;
+    }
+
+    /// <summary>
+    /// Get paginated and filtered list of replenishment requests.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResultDto<ReplenishmentRequestDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResultDto<ReplenishmentRequestDto>>> GetAll(
+        [FromQuery] RequestStatus? status,
+        [FromQuery] RequestPriority? priority,
+        [FromQuery] string? stockLocationCode,
+        [FromQuery] string? searchTerm,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var filter = new RequestFilterDto
+        {
+            Status = status,
+            Priority = priority,
+            StockLocationCode = stockLocationCode,
+            SearchTerm = searchTerm,
+            Page = page,
+            PageSize = pageSize
+        };
+
+        var result = await _service.GetFilteredAsync(filter);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get a single replenishment request by ID.
+    /// </summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReplenishmentRequestDto>> GetById(int id)
+    {
+        try
+        {
+            var result = await _service.GetByIdAsync(id);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Create a new replenishment request in Draft status.
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ReplenishmentRequestDto>> Create(
+        [FromBody] CreateReplenishmentRequestDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+    }
+
+    /// <summary>
+    /// Update a draft replenishment request.
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReplenishmentRequestDto>> Update(
+        int id, [FromBody] UpdateReplenishmentRequestDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var result = await _service.UpdateAsync(id, dto);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Submit a draft request for approval. Triggers async stock validation.
+    /// </summary>
+    [HttpPost("{id:int}/submit")]
+    [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReplenishmentRequestDto>> Submit(int id)
+    {
+        try
+        {
+            var result = await _service.SubmitAsync(id);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Approve a submitted request.
+    /// </summary>
+    [HttpPost("{id:int}/approve")]
+    [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReplenishmentRequestDto>> Approve(
+        int id, [FromBody] ApproveRequestDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var result = await _service.ApproveAsync(id, dto);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Reject a submitted request. Requires a rejection reason.
+    /// </summary>
+    [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReplenishmentRequestDto>> Reject(
+        int id, [FromBody] RejectRequestDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var result = await _service.RejectAsync(id, dto);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Mark an approved request as fulfilled with quantities per item.
+    /// </summary>
+    [HttpPost("{id:int}/fulfill")]
+    [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReplenishmentRequestDto>> Fulfill(
+        int id, [FromBody] FulfillRequestDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var result = await _service.FulfillAsync(id, dto);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get the stock validation status for a request.
+    /// </summary>
+    [HttpGet("{id:int}/stock-validation")]
+    [ProducesResponseType(typeof(StockValidationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StockValidationResultDto>> GetStockValidation(int id)
+    {
+        try
+        {
+            var result = await _service.GetStockValidationStatusAsync(id);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get distinct stock location codes for filtering.
+    /// </summary>
+    [HttpGet("locations")]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<string>>> GetLocations()
+    {
+        var result = await _service.GetDistinctLocationsAsync();
+        return Ok(result);
+    }
+}
