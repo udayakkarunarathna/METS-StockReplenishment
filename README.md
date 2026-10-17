@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # METS - Stock Replenishment Request System
 
 A manufacturing execution and tracking system (METS) feature for managing stock replenishment requests on the production floor.
@@ -93,3 +94,6 @@ When a request is submitted, an asynchronous stock validation is queued via a ba
 - Runs without blocking the API or UI
 - Results are polled by the Blazor UI every 2 seconds
 - Returns one of: Available, PartiallyAvailable, or Unavailable
+=======
+# METS-StockReplenishment
+>>>>>>> 3e165107464e08b27395e318a96ce16fe9c18470
