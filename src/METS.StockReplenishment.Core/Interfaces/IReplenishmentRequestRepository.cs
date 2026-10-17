@@ -12,4 +12,6 @@ public interface IReplenishmentRequestRepository
     Task UpdateAsync(ReplenishmentRequest request);
     Task<string> GenerateRequestNumberAsync();
     Task<List<string>> GetDistinctLocationsAsync();
+    Task<List<StockLocationOptionDto>> GetDistinctLocationOptionsAsync();
+    Task<List<ArticleOptionDto>> GetDistinctArticleOptionsAsync();
 }

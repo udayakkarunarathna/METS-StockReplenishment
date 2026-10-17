@@ -135,6 +135,7 @@ public class ReplenishmentRequestService : IReplenishmentRequestService
         request.Status = RequestStatus.Approved;
         request.ReviewedBy = dto.ReviewedBy;
         request.ReviewedAt = DateTime.UtcNow;
+        request.RejectionReason = string.IsNullOrWhiteSpace(dto.Reason) ? null : dto.Reason.Trim();
         request.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(request);
@@ -152,7 +153,7 @@ public class ReplenishmentRequestService : IReplenishmentRequestService
         request.Status = RequestStatus.Rejected;
         request.ReviewedBy = dto.ReviewedBy;
         request.ReviewedAt = DateTime.UtcNow;
-        request.RejectionReason = dto.Reason;
+        request.RejectionReason = dto.Reason.Trim();
         request.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(request);
@@ -203,6 +204,16 @@ public class ReplenishmentRequestService : IReplenishmentRequestService
     public async Task<List<string>> GetDistinctLocationsAsync()
     {
         return await _repository.GetDistinctLocationsAsync();
+    }
+
+    public async Task<List<StockLocationOptionDto>> GetDistinctLocationOptionsAsync()
+    {
+        return await _repository.GetDistinctLocationOptionsAsync();
+    }
+
+    public async Task<List<ArticleOptionDto>> GetDistinctArticleOptionsAsync()
+    {
+        return await _repository.GetDistinctArticleOptionsAsync();
     }
 
     private static ReplenishmentRequestDto MapToDto(ReplenishmentRequest request)

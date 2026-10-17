@@ -14,4 +14,6 @@ public interface IReplenishmentRequestService
     Task<ReplenishmentRequestDto> FulfillAsync(int id, FulfillRequestDto dto);
     Task<StockValidationResultDto> GetStockValidationStatusAsync(int id);
     Task<List<string>> GetDistinctLocationsAsync();
+    Task<List<StockLocationOptionDto>> GetDistinctLocationOptionsAsync();
+    Task<List<ArticleOptionDto>> GetDistinctArticleOptionsAsync();
 }

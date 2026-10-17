@@ -4,7 +4,9 @@ namespace METS.StockReplenishment.Core.DTOs;
 
 public class ApproveRequestDto
 {
-    [Required]
     [StringLength(100)]
     public string ReviewedBy { get; set; } = string.Empty;
+
+    [StringLength(500)]
+    public string? Reason { get; set; }
 }

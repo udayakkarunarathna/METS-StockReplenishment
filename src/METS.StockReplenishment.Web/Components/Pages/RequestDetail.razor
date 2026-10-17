@@ -1,4 +1,6 @@
 @page "/requests/{Id:int}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
@@ -72,37 +74,45 @@ else
         <div class="d-flex gap-2">
             @if (string.Equals(_request.Status, "Draft", StringComparison.OrdinalIgnoreCase))
             {
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Secondary" 
-                           StartIcon="@Icons.Material.Filled.Edit"
-                           Disabled="@_isSubmitting"
-                           OnClick="@(() => NavigationManager.NavigateTo($"/requests/{Id}/edit"))">
-                    Edit
-                </MudButton>
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           StartIcon="@Icons.Material.Filled.Send"
-                           Disabled="@_isSubmitting"
-                           OnClick="SubmitDraftRequest">
-                    Submit Request
-                </MudButton>
+                <AuthorizeView Roles="Worker">
+                    <Authorized>
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Secondary" 
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   Disabled="@_isSubmitting"
+                                   OnClick="@(() => NavigationManager.NavigateTo($"/requests/{Id}/edit"))">
+                            Edit
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="@Icons.Material.Filled.Send"
+                                   Disabled="@_isSubmitting"
+                                   OnClick="SubmitDraftRequest">
+                            Submit Request
+                        </MudButton>
+                    </Authorized>
+                </AuthorizeView>
             }
             else if (string.Equals(_request.Status, "Submitted", StringComparison.OrdinalIgnoreCase))
             {
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Error" 
-                           StartIcon="@Icons.Material.Filled.Cancel"
-                           Disabled="@_isValidating"
-                           OnClick="OpenRejectDialog">
-                    Reject
-                </MudButton>
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Success" 
-                           StartIcon="@Icons.Material.Filled.CheckCircle"
-                           Disabled="@_isValidating"
-                           OnClick="OpenApproveDialog">
-                    Approve
-                </MudButton>
+                <AuthorizeView Roles="Reviewer">
+                    <Authorized>
+                        <MudButton Variant="Variant.Outlined" 
+                                   Color="Color.Error" 
+                                   StartIcon="@Icons.Material.Filled.Cancel"
+                                   Disabled="@_isValidating"
+                                   OnClick="OpenRejectDialog">
+                            Reject
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Success" 
+                                   StartIcon="@Icons.Material.Filled.CheckCircle"
+                                   Disabled="@_isValidating"
+                                   OnClick="OpenApproveDialog">
+                            Approve
+                        </MudButton>
+                    </Authorized>
+                </AuthorizeView>
             }
             else if (string.Equals(_request.Status, "Approved", StringComparison.OrdinalIgnoreCase))
             {
@@ -171,8 +181,8 @@ else
                             @if (!string.IsNullOrEmpty(_request.RejectionReason))
                             {
                                 <tr>
-                                    <td style="font-weight: bold; color: var(--mud-palette-error);">Rejection Reason</td>
-                                    <td style="color: var(--mud-palette-error);">@_request.RejectionReason</td>
+                                    <td style="font-weight: bold; color: @GetReviewReasonColor(_request.Status);">@GetReviewReasonLabel(_request.Status)</td>
+                                    <td style="color: @GetReviewReasonColor(_request.Status);">@_request.RejectionReason</td>
                                 </tr>
                             }
                             <tr>
@@ -317,12 +327,7 @@ else
         </div>
     </TitleContent>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-3">Please provide the reviewer name and a reason for rejecting request @_request?.RequestNumber.</MudText>
-        <MudTextField @bind-Value="_rejectReviewer" 
-                      Label="Reviewer Name" 
-                      Required="true" 
-                      RequiredError="Reviewer name is required" 
-                      Class="mb-3" />
+        <MudText Typo="Typo.body2" Class="mb-3">Please provide a reason for rejecting request @_request?.RequestNumber. Your logged-in reviewer account will be saved automatically.</MudText>
         <MudTextField @bind-Value="_rejectReason" 
                       Label="Rejection Reason" 
                       Required="true" 
@@ -334,7 +339,7 @@ else
         <MudButton OnClick="@(() => _showRejectDialog = false)">Cancel</MudButton>
         <MudButton Color="Color.Error" 
                    Variant="Variant.Filled" 
-                   Disabled="@(string.IsNullOrWhiteSpace(_rejectReviewer) || string.IsNullOrWhiteSpace(_rejectReason) || _isActionInProgress)"
+                   Disabled="@(string.IsNullOrWhiteSpace(_rejectReason) || _isActionInProgress)"
                    OnClick="ConfirmReject">
             Reject Request
         </MudButton>
@@ -350,18 +355,19 @@ else
         </div>
     </TitleContent>
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="mb-3">Confirm approval for request @_request?.RequestNumber.</MudText>
-        <MudTextField @bind-Value="_approveReviewer" 
-                      Label="Reviewer Name" 
+        <MudText Typo="Typo.body2" Class="mb-3">Confirm approval for request @_request?.RequestNumber. Your logged-in reviewer account will be saved automatically.</MudText>
+        <MudTextField @bind-Value="_approveReason" 
+                      Label="Approval Reason" 
                       Required="true" 
-                      RequiredError="Reviewer name is required" 
+                      RequiredError="Approval reason is required" 
+                      Lines="3" 
                       Class="mb-3" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => _showApproveDialog = false)">Cancel</MudButton>
         <MudButton Color="Color.Success" 
                    Variant="Variant.Filled" 
-                   Disabled="@(string.IsNullOrWhiteSpace(_approveReviewer) || _isActionInProgress)"
+                   Disabled="@(string.IsNullOrWhiteSpace(_approveReason) || _isActionInProgress)"
                    OnClick="ConfirmApprove">
             Approve Request
         </MudButton>
@@ -431,12 +437,11 @@ else
 
     // Reject Dialog
     private bool _showRejectDialog = false;
-    private string _rejectReviewer = string.Empty;
     private string _rejectReason = string.Empty;
 
     // Approve Dialog
     private bool _showApproveDialog = false;
-    private string _approveReviewer = string.Empty;
+    private string _approveReason = string.Empty;
 
     // Fulfill Dialog
     private bool _showFulfillDialog = false;
@@ -599,14 +604,13 @@ else
 
     private void OpenRejectDialog()
     {
-        _rejectReviewer = string.Empty;
         _rejectReason = string.Empty;
         _showRejectDialog = true;
     }
 
     private async Task ConfirmReject()
     {
-        if (string.IsNullOrWhiteSpace(_rejectReviewer) || string.IsNullOrWhiteSpace(_rejectReason))
+        if (string.IsNullOrWhiteSpace(_rejectReason))
             return;
 
         _isActionInProgress = true;
@@ -614,7 +618,6 @@ else
         {
             var dto = new RejectRequestDto
             {
-                ReviewedBy = _rejectReviewer.Trim(),
                 Reason = _rejectReason.Trim()
             };
 
@@ -643,13 +646,13 @@ else
 
     private void OpenApproveDialog()
     {
-        _approveReviewer = string.Empty;
+        _approveReason = string.Empty;
         _showApproveDialog = true;
     }
 
     private async Task ConfirmApprove()
     {
-        if (string.IsNullOrWhiteSpace(_approveReviewer))
+        if (string.IsNullOrWhiteSpace(_approveReason))
             return;
 
         _isActionInProgress = true;
@@ -657,7 +660,7 @@ else
         {
             var dto = new ApproveRequestDto
             {
-                ReviewedBy = _approveReviewer.Trim()
+                Reason = _approveReason.Trim()
             };
 
             var response = await Http.PostAsJsonAsync($"/api/replenishmentrequests/{Id}/approve", dto);
@@ -773,6 +776,16 @@ else
         "inprogress" => Icons.Material.Filled.Sync,
         _ => Icons.Material.Filled.HelpOutline
     };
+
+    private static string GetReviewReasonLabel(string status) =>
+        string.Equals(status, "Rejected", StringComparison.OrdinalIgnoreCase)
+            ? "Rejection Reason"
+            : "Review Reason";
+
+    private static string GetReviewReasonColor(string status) =>
+        string.Equals(status, "Rejected", StringComparison.OrdinalIgnoreCase)
+            ? "var(--mud-palette-error)"
+            : "var(--mud-palette-info)";
 
     private Severity GetValidationSeverity(string status) => status?.ToLowerInvariant() switch
     {

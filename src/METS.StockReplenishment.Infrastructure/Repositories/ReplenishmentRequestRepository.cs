@@ -37,6 +37,9 @@ public class ReplenishmentRequestRepository : IReplenishmentRequestRepository
         if (!string.IsNullOrWhiteSpace(filter.StockLocationCode))
             query = query.Where(r => r.StockLocationCode == filter.StockLocationCode);
 
+        if (!string.IsNullOrWhiteSpace(filter.ArticleNumber))
+            query = query.Where(r => r.LineItems.Any(li => li.ArticleNumber == filter.ArticleNumber));
+
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
             var term = filter.SearchTerm.ToLower();
@@ -91,6 +94,32 @@ public class ReplenishmentRequestRepository : IReplenishmentRequestRepository
             .Select(r => r.StockLocationCode)
             .Distinct()
             .OrderBy(l => l)
+            .ToListAsync();
+    }
+
+    public async Task<List<StockLocationOptionDto>> GetDistinctLocationOptionsAsync()
+    {
+        return await _context.ReplenishmentRequests
+            .GroupBy(r => new { r.StockLocationCode, r.StockLocationName })
+            .Select(g => new StockLocationOptionDto
+            {
+                Code = g.Key.StockLocationCode,
+                Name = g.Key.StockLocationName
+            })
+            .OrderBy(l => l.Code)
+            .ToListAsync();
+    }
+
+    public async Task<List<ArticleOptionDto>> GetDistinctArticleOptionsAsync()
+    {
+        return await _context.ReplenishmentLineItems
+            .GroupBy(li => new { li.ArticleNumber, li.Description })
+            .Select(g => new ArticleOptionDto
+            {
+                ArticleNumber = g.Key.ArticleNumber,
+                Description = g.Key.Description
+            })
+            .OrderBy(a => a.ArticleNumber)
             .ToListAsync();
     }
 }

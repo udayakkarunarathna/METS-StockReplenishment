@@ -8,7 +8,6 @@ public class RejectRequestDto
     [StringLength(500)]
     public string Reason { get; set; } = string.Empty;
 
-    [Required]
     [StringLength(100)]
     public string ReviewedBy { get; set; } = string.Empty;
 }

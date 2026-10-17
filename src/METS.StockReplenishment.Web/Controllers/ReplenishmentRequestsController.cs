@@ -2,6 +2,7 @@ using METS.StockReplenishment.Core.DTOs;
 using METS.StockReplenishment.Core.Enums;
 using METS.StockReplenishment.Core.Exceptions;
 using METS.StockReplenishment.Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace METS.StockReplenishment.Web.Controllers;
@@ -26,6 +27,7 @@ public class ReplenishmentRequestsController : ControllerBase
         [FromQuery] RequestStatus? status,
         [FromQuery] RequestPriority? priority,
         [FromQuery] string? stockLocationCode,
+        [FromQuery] string? articleNumber,
         [FromQuery] string? searchTerm,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
@@ -35,6 +37,7 @@ public class ReplenishmentRequestsController : ControllerBase
             Status = status,
             Priority = priority,
             StockLocationCode = stockLocationCode,
+            ArticleNumber = articleNumber,
             SearchTerm = searchTerm,
             Page = page,
             PageSize = pageSize
@@ -67,12 +70,16 @@ public class ReplenishmentRequestsController : ControllerBase
     /// Create a new replenishment request in Draft status.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Worker")]
     [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ReplenishmentRequestDto>> Create(
         [FromBody] CreateReplenishmentRequestDto dto)
     {
-        if (!ModelState.IsValid)
+        dto.RequestedBy = User.Identity?.Name ?? string.Empty;
+        ModelState.Remove(nameof(CreateReplenishmentRequestDto.RequestedBy));
+
+        if (!TryValidateModel(dto))
             return BadRequest(ModelState);
 
         var result = await _service.CreateAsync(dto);
@@ -83,6 +90,7 @@ public class ReplenishmentRequestsController : ControllerBase
     /// Update a draft replenishment request.
     /// </summary>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Worker")]
     [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -111,6 +119,7 @@ public class ReplenishmentRequestsController : ControllerBase
     /// Submit a draft request for approval. Triggers async stock validation.
     /// </summary>
     [HttpPost("{id:int}/submit")]
+    [Authorize(Roles = "Worker")]
     [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -135,12 +144,15 @@ public class ReplenishmentRequestsController : ControllerBase
     /// Approve a submitted request.
     /// </summary>
     [HttpPost("{id:int}/approve")]
+    [Authorize(Roles = "Reviewer")]
     [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ReplenishmentRequestDto>> Approve(
         int id, [FromBody] ApproveRequestDto dto)
     {
+        dto.ReviewedBy = User.Identity?.Name ?? string.Empty;
+
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
@@ -163,12 +175,15 @@ public class ReplenishmentRequestsController : ControllerBase
     /// Reject a submitted request. Requires a rejection reason.
     /// </summary>
     [HttpPost("{id:int}/reject")]
+    [Authorize(Roles = "Reviewer")]
     [ProducesResponseType(typeof(ReplenishmentRequestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ReplenishmentRequestDto>> Reject(
         int id, [FromBody] RejectRequestDto dto)
     {
+        dto.ReviewedBy = User.Identity?.Name ?? string.Empty;
+
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
@@ -242,6 +257,28 @@ public class ReplenishmentRequestsController : ControllerBase
     public async Task<ActionResult<List<string>>> GetLocations()
     {
         var result = await _service.GetDistinctLocationsAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get distinct stock locations (code and name) for create/update dropdowns.
+    /// </summary>
+    [HttpGet("location-options")]
+    [ProducesResponseType(typeof(List<StockLocationOptionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<StockLocationOptionDto>>> GetLocationOptions()
+    {
+        var result = await _service.GetDistinctLocationOptionsAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get distinct articles (article number and description) for filters and dropdowns.
+    /// </summary>
+    [HttpGet("article-options")]
+    [ProducesResponseType(typeof(List<ArticleOptionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ArticleOptionDto>>> GetArticleOptions()
+    {
+        var result = await _service.GetDistinctArticleOptionsAsync();
         return Ok(result);
     }
 }

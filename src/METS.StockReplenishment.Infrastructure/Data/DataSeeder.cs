@@ -1,11 +1,85 @@
 using METS.StockReplenishment.Core.Entities;
 using METS.StockReplenishment.Core.Enums;
+using Microsoft.AspNetCore.Identity;
 
 namespace METS.StockReplenishment.Infrastructure.Data;
 
 public static class DataSeeder
 {
     public static void Seed(AppDbContext context)
+    {
+        SeedRoles(context);
+        SeedUsers(context);
+        SeedReplenishmentRequests(context);
+    }
+
+    private static void SeedRoles(AppDbContext context)
+    {
+        if (context.Roles.Any()) return;
+
+        var roles = new List<IdentityRole>
+        {
+            new() { Id = "1", Name = "Worker", NormalizedName = "WORKER" },
+            new() { Id = "2", Name = "Reviewer", NormalizedName = "REVIEWER" }
+        };
+
+        context.Roles.AddRange(roles);
+        context.SaveChanges();
+    }
+
+    private static void SeedUsers(AppDbContext context)
+    {
+        if (context.Users.Any()) return;
+
+        var passwordHasher = new PasswordHasher<IdentityUser>();
+
+        // Worker user
+        var worker = new IdentityUser
+        {
+            Id = "worker-id",
+            UserName = "worker",
+            NormalizedUserName = "WORKER",
+            Email = "worker@mets.local",
+            NormalizedEmail = "WORKER@METS.LOCAL",
+            EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        worker.PasswordHash = passwordHasher.HashPassword(worker, "worker123");
+
+        // Reviewer user
+        var reviewer = new IdentityUser
+        {
+            Id = "reviewer-id",
+            UserName = "reviewer",
+            NormalizedUserName = "REVIEWER",
+            Email = "reviewer@mets.local",
+            NormalizedEmail = "REVIEWER@METS.LOCAL",
+            EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        reviewer.PasswordHash = passwordHasher.HashPassword(reviewer, "reviewer123");
+
+        context.Users.AddRange(worker, reviewer);
+        context.SaveChanges();
+
+        // Assign roles
+        var workerRole = new IdentityUserRole<string>
+        {
+            UserId = worker.Id,
+            RoleId = "1"
+        };
+
+        var reviewerRole = new IdentityUserRole<string>
+        {
+            UserId = reviewer.Id,
+            RoleId = "2"
+        };
+
+        context.UserRoles.AddRange(workerRole, reviewerRole);
+        context.SaveChanges();
+    }
+
+    private static void SeedReplenishmentRequests(AppDbContext context)
     {
         if (context.ReplenishmentRequests.Any()) return;
 

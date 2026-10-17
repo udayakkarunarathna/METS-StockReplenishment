@@ -1,4 +1,8 @@
-@page "/"
+@page "/requests"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
@@ -6,6 +10,57 @@
 <PageTitle>Stock Replenishment Requests</PageTitle>
 
 <MudText Typo="Typo.h5" Class="mb-4">Stock Replenishment Requests</MudText>
+
+<MudGrid Spacing="2" Class="mb-4">
+    <MudItem xs="12" sm="6" md="2">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Primary">@_totalCount</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="2">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Draft</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Default">@_draftCount</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="2">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Submitted</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Info">@_submittedCount</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="2">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Approved</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Success">@_approvedCount</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="2">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Rejected</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Error">@_rejectedCount</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="2">
+        <MudCard Elevation="1">
+            <MudCardContent>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Fulfilled</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Dark">@_fulfilledCount</MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
 
 <MudCard Elevation="2" Class="mb-4">
     <MudCardContent>
@@ -63,15 +118,36 @@
                     }
                 </MudSelect>
             </MudItem>
-            <MudItem xs="12" sm="6" md="3" Class="d-flex justify-end gap-2">
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Secondary" 
-                           StartIcon="@Icons.Material.Filled.FilterAltOff" 
-                           OnClick="ResetFilters">Reset</MudButton>
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           StartIcon="@Icons.Material.Filled.Add" 
-                           OnClick="@(() => NavigationManager.NavigateTo("/requests/create"))">Create Request</MudButton>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string"
+                           Label="Article"
+                           Value="_selectedArticle"
+                           ValueChanged="OnArticleChanged"
+                           Clearable="true"
+                           OnClearButtonClick="OnArticleCleared">
+                    <MudSelectItem T="string" Value="@(null)">All Articles</MudSelectItem>
+                    @foreach (var article in _articles)
+                    {
+                        <MudSelectItem T="string" Value="@article.ArticleNumber">@article.ArticleNumber - @article.Description</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" Class="d-flex justify-end gap-2 mt-2">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.FilterAltOff"
+                           OnClick="ResetFilters">
+                    Reset
+                </MudButton>
+
+                <AuthorizeView Roles="Worker">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="@(() => NavigationManager.NavigateTo("/requests/create"))">
+                        Create Request
+                    </MudButton>
+                </AuthorizeView>
             </MudItem>
         </MudGrid>
     </MudCardContent>
@@ -125,14 +201,44 @@
                            Size="Size.Small" 
                            aria-label="View Details"
                            OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}"))" />
-            @if (string.Equals(context.Status, "Draft", StringComparison.OrdinalIgnoreCase))
-            {
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                               Color="Color.Secondary" 
-                               Size="Size.Small" 
-                               aria-label="Edit Request"
-                               OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}/edit"))" />
-            }
+            <AuthorizeView Roles="Worker" Context="authContext">
+                @if (string.Equals(context.Status, "Draft", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                   Color="Color.Secondary" 
+                                   Size="Size.Small" 
+                                   aria-label="Edit Request"
+                                   OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}/edit"))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Send" 
+                                   Color="Color.Info" 
+                                   Size="Size.Small" 
+                                   aria-label="Submit Request"
+                                   Title="Submit this request for approval" />
+                }
+            </AuthorizeView>
+            <AuthorizeView Roles="Reviewer" Context="authContext">
+                @if (string.Equals(context.Status, "Submitted", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" 
+                                   Color="Color.Success" 
+                                   Size="Size.Small" 
+                                   aria-label="Approve Request"
+                                   Title="Approve this request" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Cancel" 
+                                   Color="Color.Error" 
+                                   Size="Size.Small" 
+                                   aria-label="Reject Request"
+                                   Title="Reject this request" />
+                }
+                @if (string.Equals(context.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.LocalShipping" 
+                                   Color="Color.Warning" 
+                                   Size="Size.Small" 
+                                   aria-label="Fulfill Request"
+                                   Title="Mark request as fulfilled" />
+                }
+            </AuthorizeView>
         </MudTd>
     </RowTemplate>
     <NoRecordsContent>
@@ -152,22 +258,72 @@
     private RequestStatus? _selectedStatus;
     private RequestPriority? _selectedPriority;
     private string? _selectedLocation;
+    private string? _selectedArticle;
     private List<string> _locations = new();
+    private List<ArticleOptionDto> _articles = new();
+    private int _totalCount;
+    private int _draftCount;
+    private int _submittedCount;
+    private int _approvedCount;
+    private int _rejectedCount;
+    private int _fulfilledCount;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            await LoadDashboardCountsAsync();
+
             var locations = await Http.GetFromJsonAsync<List<string>>("/api/replenishmentrequests/locations");
             if (locations != null)
             {
                 _locations = locations;
             }
+
+            var articles = await Http.GetFromJsonAsync<List<ArticleOptionDto>>("/api/replenishmentrequests/article-options");
+            if (articles != null)
+            {
+                _articles = articles;
+            }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Failed to load locations: {ex.Message}", Severity.Warning);
+            Snackbar.Add($"Failed to load filters: {ex.Message}", Severity.Warning);
         }
+    }
+
+    private async Task LoadDashboardCountsAsync()
+    {
+        const int pageSize = 50;
+        var page = 1;
+        var allItems = new List<ReplenishmentRequestDto>();
+
+        while (true)
+        {
+            var url = $"/api/replenishmentrequests?page={page}&pageSize={pageSize}";
+            var result = await Http.GetFromJsonAsync<PagedResultDto<ReplenishmentRequestDto>>(url);
+
+            if (result == null)
+            {
+                break;
+            }
+
+            allItems.AddRange(result.Items);
+            _totalCount = result.TotalCount;
+
+            if (allItems.Count >= result.TotalCount)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        _draftCount = allItems.Count(x => string.Equals(x.Status, "Draft", StringComparison.OrdinalIgnoreCase));
+        _submittedCount = allItems.Count(x => string.Equals(x.Status, "Submitted", StringComparison.OrdinalIgnoreCase));
+        _approvedCount = allItems.Count(x => string.Equals(x.Status, "Approved", StringComparison.OrdinalIgnoreCase));
+        _rejectedCount = allItems.Count(x => string.Equals(x.Status, "Rejected", StringComparison.OrdinalIgnoreCase));
+        _fulfilledCount = allItems.Count(x => string.Equals(x.Status, "Fulfilled", StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<TableData<ReplenishmentRequestDto>> ServerReload(TableState state, CancellationToken token)
@@ -193,6 +349,11 @@
             if (!string.IsNullOrWhiteSpace(_selectedLocation))
             {
                 queryParams.Add($"stockLocationCode={Uri.EscapeDataString(_selectedLocation)}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(_selectedArticle))
+            {
+                queryParams.Add($"articleNumber={Uri.EscapeDataString(_selectedArticle)}");
             }
 
             if (!string.IsNullOrWhiteSpace(_searchTerm))
@@ -272,6 +433,18 @@
         await _table.ReloadServerData();
     }
 
+    private async Task OnArticleChanged(string? articleNumber)
+    {
+        _selectedArticle = articleNumber;
+        await _table.ReloadServerData();
+    }
+
+    private async Task OnArticleCleared()
+    {
+        _selectedArticle = null;
+        await _table.ReloadServerData();
+    }
+
     private async Task OnSearchCleared()
     {
         _searchTerm = null;
@@ -292,6 +465,7 @@
         _selectedStatus = null;
         _selectedPriority = null;
         _selectedLocation = null;
+        _selectedArticle = null;
         await _table.ReloadServerData();
     }
 
