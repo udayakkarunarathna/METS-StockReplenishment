@@ -38,6 +38,7 @@
             <Authorized Context="authContext">
                 <MudNavMenu>
                     <MudNavLink Href="/requests" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.List">Requests</MudNavLink>
+                    <MudNavLink Href="/stock-balance" Icon="@Icons.Material.Filled.Inventory2">Stock Balance</MudNavLink>
                     <AuthorizeView Roles="Worker">
                         <Authorized Context="workerContext">
                             <MudNavLink Href="/requests/create" Icon="@Icons.Material.Filled.AddCircle">Create Request</MudNavLink>

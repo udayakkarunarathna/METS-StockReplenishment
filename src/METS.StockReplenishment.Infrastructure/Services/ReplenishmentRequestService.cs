@@ -216,6 +216,11 @@ public class ReplenishmentRequestService : IReplenishmentRequestService
         return await _repository.GetDistinctArticleOptionsAsync();
     }
 
+    public async Task<List<StockBalanceDto>> GetStockBalancesAsync()
+    {
+        return await _repository.GetStockBalancesAsync();
+    }
+
     private static ReplenishmentRequestDto MapToDto(ReplenishmentRequest request)
     {
         return new ReplenishmentRequestDto

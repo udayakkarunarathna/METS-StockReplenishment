@@ -16,4 +16,5 @@ public interface IReplenishmentRequestService
     Task<List<string>> GetDistinctLocationsAsync();
     Task<List<StockLocationOptionDto>> GetDistinctLocationOptionsAsync();
     Task<List<ArticleOptionDto>> GetDistinctArticleOptionsAsync();
+    Task<List<StockBalanceDto>> GetStockBalancesAsync();
 }

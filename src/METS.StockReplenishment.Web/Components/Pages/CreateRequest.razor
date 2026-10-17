@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using METS.StockReplenishment.Core.Exceptions
 @using METS.StockReplenishment.Core.Interfaces
+@using System.Globalization
 @attribute [Authorize(Roles = "Worker")]
 @inject IReplenishmentRequestService ReplenishmentRequestService
 @inject NavigationManager NavigationManager
@@ -169,6 +170,15 @@
     private List<StockLocationOptionDto> _stockLocations = new();
     private List<ArticleOptionDto> _articleOptions = new();
 
+    [SupplyParameterFromQuery(Name = "articleNumber")]
+    public string? PrefillArticleNumber { get; set; }
+
+    [SupplyParameterFromQuery(Name = "description")]
+    public string? PrefillDescription { get; set; }
+
+    [SupplyParameterFromQuery(Name = "quantity")]
+    public string? PrefillQuantity { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -181,6 +191,7 @@
         {
             _stockLocations = await ReplenishmentRequestService.GetDistinctLocationOptionsAsync();
             _articleOptions = await ReplenishmentRequestService.GetDistinctArticleOptionsAsync();
+            ApplyPrefillLineItem();
         }
         catch (Exception ex)
         {
@@ -195,6 +206,30 @@
         _model.StockLocationName = location?.Name ?? string.Empty;
 
         return Task.CompletedTask;
+    }
+
+    private void ApplyPrefillLineItem()
+    {
+        if (_model.LineItems.Count == 0 || string.IsNullOrWhiteSpace(PrefillArticleNumber))
+        {
+            return;
+        }
+
+        var firstItem = _model.LineItems[0];
+        var articleNumber = PrefillArticleNumber.Trim();
+
+        firstItem.ArticleNumber = articleNumber;
+
+        var matchedArticle = _articleOptions.FirstOrDefault(a =>
+            string.Equals(a.ArticleNumber, articleNumber, StringComparison.OrdinalIgnoreCase));
+        firstItem.Description = matchedArticle?.Description
+            ?? PrefillDescription?.Trim()
+            ?? string.Empty;
+
+        if (decimal.TryParse(PrefillQuantity, NumberStyles.Number, CultureInfo.InvariantCulture, out var qty) && qty > 0)
+        {
+            firstItem.RequestedQuantity = qty;
+        }
     }
 
     private void AddLineItem()

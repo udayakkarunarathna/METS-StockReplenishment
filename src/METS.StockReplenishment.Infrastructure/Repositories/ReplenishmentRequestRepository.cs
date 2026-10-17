@@ -122,4 +122,32 @@ public class ReplenishmentRequestRepository : IReplenishmentRequestRepository
             .OrderBy(a => a.ArticleNumber)
             .ToListAsync();
     }
+
+    public async Task<List<StockBalanceDto>> GetStockBalancesAsync()
+    {
+        const decimal defaultStockLevel = 500m;
+        const decimal lowStockThreshold = 150m;
+
+        var articleDemand = await _context.ReplenishmentLineItems
+            .GroupBy(li => new { li.ArticleNumber, li.Description })
+            .Select(g => new
+            {
+                g.Key.ArticleNumber,
+                g.Key.Description,
+                TotalRequested = g.Sum(x => x.RequestedQuantity),
+                TotalFulfilled = g.Sum(x => x.FulfilledQuantity ?? 0m)
+            })
+            .OrderBy(x => x.ArticleNumber)
+            .ToListAsync();
+
+        return articleDemand
+            .Select(x => new StockBalanceDto
+            {
+                ArticleNumber = x.ArticleNumber,
+                Description = x.Description,
+                CurrentBalance = Math.Max(0m, defaultStockLevel - (x.TotalRequested - x.TotalFulfilled)),
+                LowStockThreshold = lowStockThreshold
+            })
+            .ToList();
+    }
 }
