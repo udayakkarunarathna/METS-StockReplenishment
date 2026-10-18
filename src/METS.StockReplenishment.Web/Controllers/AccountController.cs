@@ -1,10 +1,18 @@
+using METS.StockReplenishment.Web.ViewModels.Account;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
 
 namespace METS.StockReplenishment.Web.Controllers;
 
+
+/// <summary>
+/// Handles account operations such as authenticating users, signing them in and out, and redirecting to the login page.
+/// </summary>
+/// <remarks>Mapped to the 'Account' route and excluded from API explorer. Uses UserManager and SignInManager for
+/// credential validation and sign-in; issues the application authentication cookie on successful login and uses
+/// LocalRedirect to prevent open-redirect attacks. The POST login and logout endpoints bypass antiforgery token
+/// validation.</remarks>
 [Route("Account")]
 [ApiExplorerSettings(IgnoreApi = true)]
 public class AccountController : Controller
@@ -17,6 +25,17 @@ public class AccountController : Controller
 		_userManager = userManager;
 		_signInManager = signInManager;
 	}
+
+	/// <summary>
+	/// Authenticates the specified credentials, signs the user in, and redirects to the provided return URL or the
+	/// requests page.
+	/// </summary>
+	/// <remarks>Validates ModelState, locates the user, checks the password using SignInManager, issues the sign-in
+	/// cookie when successful, and uses LocalRedirect to prevent open-redirect attacks.</remarks>
+	/// <param name="model">A LoginViewModel containing the username and password submitted from the login form.</param>
+	/// <param name="returnUrl">An optional local URL to redirect to after successful sign-in; defaults to "/requests" when not provided.</param>
+	/// <returns>An IActionResult that redirects to the login page on validation or authentication failure, or redirects to the
+	/// return URL (or "/requests") on success.</returns>
 
 	[HttpPost("login")]
 	[IgnoreAntiforgeryToken]
@@ -44,6 +63,12 @@ public class AccountController : Controller
 		return LocalRedirect(returnUrl ?? "/requests");
 	}
 
+
+	/// <summary>
+	/// Signs the current user out of the application authentication scheme and redirects to the LoginPage action.
+	/// </summary>
+	/// <remarks>Handles POST requests to 'logout' and bypasses antiforgery token validation.</remarks>
+	/// <returns>An IActionResult that redirects the client to the LoginPage action.</returns>
 	[HttpPost("logout")]
 	[IgnoreAntiforgeryToken]
 	public async Task<IActionResult> Logout()
@@ -52,6 +77,14 @@ public class AccountController : Controller
 		return RedirectToAction("LoginPage");
 	}
 
+	/// <summary>
+	/// Redirects to the login page, including an escaped error query parameter when provided.
+	/// </summary>
+	/// <remarks>The error value is URL-escaped using Uri.EscapeDataString before being appended to the query
+	/// string.</remarks>
+	/// <param name="error">Optional error message to include in the query string; when null or whitespace, the redirect omits the error
+	/// parameter.</param>
+	/// <returns>A redirect result to the login page; includes an escaped error query parameter when an error is provided.</returns>
 	[HttpGet("login")]
 	public IActionResult LoginPage(string? error = null)
 	{
@@ -62,15 +95,4 @@ public class AccountController : Controller
 
 		return Redirect($"/login?error={Uri.EscapeDataString(error)}");
 	}
-}
-
-public class LoginViewModel
-{
-	[Required(ErrorMessage = "Username is required")]
-	public string Username { get; set; } = string.Empty;
-
-	[Required(ErrorMessage = "Password is required")]
-	[DataType(DataType.Password)]
-	public string Password { get; set; } = string.Empty;
-
 }

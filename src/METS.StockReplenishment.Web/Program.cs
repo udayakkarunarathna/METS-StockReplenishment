@@ -18,26 +18,25 @@ connection.Open();
 builder.Services.AddSingleton(connection);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(connection));
+	options.UseSqlite(connection));
 
-// Identity
+// Identity configuration
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
-    options.Password.RequiredLength = 6;
-    options.Password.RequireDigit = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
+	options.Password.RequiredLength = 6;
+	options.Password.RequireDigit = false;
+	options.Password.RequireUppercase = false;
+	options.Password.RequireNonAlphanumeric = false;
 })
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.LoginPath = "/login";
-    options.LogoutPath = "/logout";
-    options.AccessDeniedPath = "/access-denied";
-    options.SlidingExpiration = true;
-    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+	options.LoginPath = "/login";
+	options.LogoutPath = "/logout";
+	options.SlidingExpiration = true;
+	options.ExpireTimeSpan = TimeSpan.FromHours(8);
 });
 
 // HttpContextAccessor for reading current user in AuthenticationStateProvider
@@ -47,7 +46,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
 
 // Authentication Service
-builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddTransient<AuthCookieForwardingHandler>();
 
 // Repositories & Services
@@ -62,31 +60,31 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<StockValidationBac
 
 // API Controllers
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(
-            new System.Text.Json.Serialization.JsonStringEnumConverter());
-    });
+	.AddJsonOptions(options =>
+	{
+		options.JsonSerializerOptions.Converters.Add(
+			new System.Text.Json.Serialization.JsonStringEnumConverter());
+	});
 
 // MudBlazor
 builder.Services.AddMudServices();
 
 // Blazor Server
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+	.AddInteractiveServerComponents();
 
 // HttpClient for Blazor components to call the local API.
 // Keep resolution scoped so NavigationManager is available, and forward auth cookie.
 builder.Services.AddScoped(sp =>
 {
-    var nav = sp.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
-    var handler = sp.GetRequiredService<AuthCookieForwardingHandler>();
-    handler.InnerHandler = new HttpClientHandler();
+	var nav = sp.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+	var handler = sp.GetRequiredService<AuthCookieForwardingHandler>();
+	handler.InnerHandler = new HttpClientHandler();
 
-    return new HttpClient(handler)
-    {
-        BaseAddress = new Uri(nav.BaseUri)
-    };
+	return new HttpClient(handler)
+	{
+		BaseAddress = new Uri(nav.BaseUri)
+	};
 });
 
 var app = builder.Build();
@@ -94,15 +92,9 @@ var app = builder.Build();
 // Create database schema and seed data
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    context.Database.EnsureCreated();
-    DataSeeder.Seed(context);
-}
-
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
+	var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+	context.Database.EnsureCreated();
+	DataSeeder.Seed(context);
 }
 
 app.UseStaticFiles();
@@ -113,6 +105,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+	.AddInteractiveServerRenderMode();
 
 app.Run();
