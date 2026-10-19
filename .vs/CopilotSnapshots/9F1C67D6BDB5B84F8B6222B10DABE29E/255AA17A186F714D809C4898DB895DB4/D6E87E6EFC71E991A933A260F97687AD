@@ -1,0 +1,6 @@
+﻿namespace METS.StockReplenishment.Web.Controllers
+{
+	public class AuthController
+	{
+	}
+}

@@ -28,23 +28,24 @@
                               Variant="Variant.Outlined"
                               FullWidth="true"
                               Class="mb-4"
-                              Autocomplete="username"
+                              autocomplete="username"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Person"
                               name="username" />
 
-                <MudTextField @bind-Value="@_loginModel.Password"
+                
+                <MudTextField @bind-Value="_loginModel.Password"
                               Label="Password"
                               Variant="Variant.Outlined"
                               FullWidth="true"
                               InputType="@_showPassword"
                               Class="mb-4"
-                              Autocomplete="current-password"
+                              autocomplete="current-password"
                               Adornment="Adornment.End"
-                              AdornmentIcon="@(_hideIcon)"
+                              AdornmentIcon="@_hideIcon"
                               OnAdornmentClick="@TogglePassword"
-                              AdornmentClicked="true"
                               name="password" />
+
 
                 <button type="submit" class="mud-button-root mud-button mud-button-filled mud-button-filled-primary mud-button-filled-size-large mud-width-full mb-6">
                     <span class="mud-button-label">Login</span>

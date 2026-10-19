@@ -199,7 +199,7 @@
                            Color="Color.Primary" 
                            Size="Size.Small" 
                            aria-label="View Details"
-                           Title="View this request details"
+                           title="View this request details"
                            OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}"))" />
             <AuthorizeView Roles="Worker" Context="authContext">
                 @if (string.Equals(context.Status, "Draft", StringComparison.OrdinalIgnoreCase))
@@ -208,13 +208,13 @@
                                    Color="Color.Secondary" 
                                    Size="Size.Small" 
                                    aria-label="Edit Request"
-                                   Title="Edit this request details"
+                                   title="Edit this request details"
                                    OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}/edit"))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Send" 
                                    Color="Color.Info" 
                                    Size="Size.Small" 
                                    aria-label="Submit Request"
-                                   Title="Submit this request for approval"
+                                   title="Submit this request for approval"
                                    OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}"))" />
                 }
             </AuthorizeView>
@@ -225,13 +225,13 @@
                                    Color="Color.Success" 
                                    Size="Size.Small" 
                                    aria-label="Approve Request"
-                                   Title="Check and Approve this request"
+                                   title="Check and Approve this request"
                                    OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}"))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Cancel" 
                                    Color="Color.Error" 
                                    Size="Size.Small" 
                                    aria-label="Reject Request"
-                                   Title="Check and Reject this request" 
+                                   title="Check and Reject this request"
                                    OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}"))" />
                 }
                 @if (string.Equals(context.Status, "Approved", StringComparison.OrdinalIgnoreCase))
@@ -240,7 +240,7 @@
                                    Color="Color.Warning" 
                                    Size="Size.Small" 
                                    aria-label="Fulfill Request"
-                                   Title="Mark request as fulfilled" 
+                                   title="Mark request as fulfilled"
                                    OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}"))" />
                 }
             </AuthorizeView>
