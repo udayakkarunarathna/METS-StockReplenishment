@@ -20,6 +20,16 @@ public class StockValidationService : IStockValidationService
 		_logger = logger;
 	}
 
+	/// <summary>
+	/// Validates stock availability for the specified replenishment request asynchronously and updates the request's stock
+	/// validation status, message, and timestamps in the database.
+	/// </summary>
+	/// <remarks>Runs in a new service scope for background execution. Loads the request with its line items, marks
+	/// validation as InProgress, persists intermediate and final status updates, and logs progress. May simulate external
+	/// service latency and set statuses to Available, PartiallyAvailable, or Unavailable. Returns immediately if the
+	/// request is not found.</remarks>
+	/// <param name="requestId">Identifier of the replenishment request to validate.</param>
+	/// <returns>A Task that represents the asynchronous operation.</returns>
 	public async Task ValidateStockAvailabilityAsync(int requestId)
 	{
 		_logger.LogInformation("Starting stock validation for request {RequestId}", requestId);

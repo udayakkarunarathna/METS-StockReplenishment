@@ -5,11 +5,11 @@ namespace METS.StockReplenishment.Core.DTOs;
 public class CreateLineItemDto
 {
     [Required]
-    [StringLength(50)]
+    [StringLength(50, ErrorMessage = "Article number cannot exceed 50 characters.")]
     public string ArticleNumber { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(200)]
+    [StringLength(200, ErrorMessage = "Description cannot exceed 200 characters.")]
     public string Description { get; set; } = string.Empty;
 
     [Required]

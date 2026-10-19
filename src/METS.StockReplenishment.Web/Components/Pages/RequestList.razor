@@ -225,7 +225,8 @@
                                    Color="Color.Success" 
                                    Size="Size.Small" 
                                    aria-label="Approve Request"
-                                   Title="Check and Approve this request" />
+                                   Title="Check and Approve this request"
+                                   OnClick="@(() => NavigationManager.NavigateTo($"/requests/{context.Id}"))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Cancel" 
                                    Color="Color.Error" 
                                    Size="Size.Small" 

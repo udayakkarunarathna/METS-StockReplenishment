@@ -25,6 +25,13 @@ public class StockValidationBackgroundService : BackgroundService, IStockValidat
 		_logger = logger;
 	}
 
+	/// <summary>
+	/// Queues a stock validation request identified by the specified requestId for asynchronous processing.
+	/// </summary>
+	/// <remarks>Enqueues the request to an internal channel for background processing; does not perform validation
+	/// synchronously.</remarks>
+	/// <param name="requestId">Identifier of the request to validate.</param>
+	/// <returns>A ValueTask that completes when the request has been written to the channel.</returns>
 	public async ValueTask QueueValidationAsync(int requestId)
 	{
 		await _channel.Writer.WriteAsync(requestId);

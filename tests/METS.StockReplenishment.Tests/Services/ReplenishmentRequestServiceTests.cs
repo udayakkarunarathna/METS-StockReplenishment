@@ -1,3 +1,4 @@
+using System.Linq;
 using METS.StockReplenishment.Core.DTOs;
 using METS.StockReplenishment.Core.Entities;
 using METS.StockReplenishment.Core.Enums;
@@ -120,8 +121,8 @@ public class ReplenishmentRequestServiceTests
 		Assert.That(result.RequestedBy, Is.EqualTo("Alice Smith"));
 		Assert.That(result.StockValidationStatus, Is.EqualTo(StockValidationStatus.NotChecked.ToString()));
 		Assert.That(result.LineItems, Has.Count.EqualTo(1));
-		Assert.That(result.LineItems[0].ArticleNumber, Is.EqualTo("ART-001"));
-		Assert.That(result.LineItems[0].RequestedQuantity, Is.EqualTo(100m));
+		Assert.That(result.LineItems.First().ArticleNumber, Is.EqualTo("ART-001"));
+		Assert.That(result.LineItems.First().RequestedQuantity, Is.EqualTo(100m));
 
 		await _repository.Received(1).AddAsync(Arg.Is<ReplenishmentRequest>(r =>
 			r.Status == RequestStatus.Draft &&
@@ -473,7 +474,7 @@ public class ReplenishmentRequestServiceTests
 		Assert.That(result.Status, Is.EqualTo(RequestStatus.Fulfilled.ToString()));
 		Assert.That(result.FulfilledAt, Is.Not.Null);
 		Assert.That(result.LineItems, Has.Count.EqualTo(1));
-		Assert.That(result.LineItems[0].FulfilledQuantity, Is.EqualTo(45m));
+		Assert.That(result.LineItems.First().FulfilledQuantity, Is.EqualTo(45m));
 
 		await _repository.Received(1).UpdateAsync(Arg.Is<ReplenishmentRequest>(r =>
 			r.Id == requestId &&
@@ -600,8 +601,8 @@ public class ReplenishmentRequestServiceTests
 		Assert.That(result.StockLocationName, Is.EqualTo("Updated Warehouse"));
 		Assert.That(result.Priority, Is.EqualTo(RequestPriority.Urgent.ToString()));
 		Assert.That(result.LineItems, Has.Count.EqualTo(1));
-		Assert.That(result.LineItems[0].ArticleNumber, Is.EqualTo("ART-200"));
-		Assert.That(result.LineItems[0].RequestedQuantity, Is.EqualTo(25m));
+		Assert.That(result.LineItems.First().ArticleNumber, Is.EqualTo("ART-200"));
+		Assert.That(result.LineItems.First().RequestedQuantity, Is.EqualTo(25m));
 
 		await _repository.Received(1).UpdateAsync(Arg.Is<ReplenishmentRequest>(r =>
 			r.Id == requestId &&
@@ -609,7 +610,7 @@ public class ReplenishmentRequestServiceTests
 			r.StockLocationName == "Updated Warehouse" &&
 			r.Priority == RequestPriority.Urgent &&
 			r.LineItems.Count == 1 &&
-			r.LineItems[0].ArticleNumber == "ART-200"));
+			r.LineItems.First().ArticleNumber == "ART-200"));
 	}
 
 	[Test]
@@ -781,7 +782,7 @@ public class ReplenishmentRequestServiceTests
 		Assert.That(filter.PageSize, Is.EqualTo(50));
 		Assert.That(result.TotalCount, Is.EqualTo(1));
 		Assert.That(result.Items, Has.Count.EqualTo(1));
-		Assert.That(result.Items[0].Id, Is.EqualTo(1));
+		Assert.That(result.Items.First().Id, Is.EqualTo(1));
 
 		await _repository.Received(1).GetFilteredAsync(Arg.Is<RequestFilterDto>(f =>
 			f.Page == 1 && f.PageSize == 50));
